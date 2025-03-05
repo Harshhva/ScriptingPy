@@ -1,0 +1,46 @@
+import os
+import sys
+import socket
+from scapy.all import ARP, Ether , srp
+import ipaddress
+import time
+
+def check_permission ():
+    if os.geteuid() != 0 :
+        print("This script must run on Root mode.Use Sudo command")
+        sys.exit(1)
+
+def get_network_range():
+    while True:
+        network_range = input("Enter the Network range.....(e.g. 192.168.1.0/24): ")
+        try:
+            ipaddress.IPv4Address
+            return network_range
+        except ValueError:
+            print("Invalid network range.Please try again. ")
+
+
+def scan_network(network_range):
+    print(f"Scanning network: {network_range}")
+    arp = ARP(pdst=network_range)
+    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+
+    packet = ether/arp
+
+    result = srp(packet, timeout=2, verbose=False)[0]
+    devices = []
+
+    for sent,received in result:
+        devices.append({'ip':received.psrc, 'mac':received.hwsrc})
+
+    return devices        
+
+if __name__=="__main__":
+
+    check_permission()
+    network_range = get_network_range()
+    Scanned_network = scan_network(network_range)
+    
+    print("For devices forund in network:")
+    for device in Scanned_network:
+        print(f"Ip: {device['ip']}, 'MAC':{device['mac']}")
